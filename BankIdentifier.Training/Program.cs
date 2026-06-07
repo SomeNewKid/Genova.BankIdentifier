@@ -14,9 +14,6 @@ namespace Genova.BankIdentifier.Training;
 /// </summary>
 public static class Program
 {
-    private const string InputDirectory = @"C:\Git\Genova.BankIdentifier\BankIdentifier.Training\Input";
-    private const string OutputDirectory = @"C:\Git\Genova.BankIdentifier\BankIdentifier\Data";
-
     private const string RiverCorpusFileName = "river-bank.txt";
     private const string FinancialCorpusFileName = "financial-bank.txt";
     private const string OtherCorpusFileName = "other-bank.txt";
@@ -31,9 +28,13 @@ public static class Program
     {
         try
         {
+            string solutionFolder = FindSolutionFolder();
+            string inputDirectory = Path.Combine(solutionFolder, "BankIdentifier.Training", "Input");
+            string outputDirectory = Path.Combine(solutionFolder, "BankIdentifier", "Data");
+
             Console.WriteLine("Genova.BankIdentifier.Training - Building bank centroids...");
-            Console.WriteLine($"Input directory : {InputDirectory}");
-            Console.WriteLine($"Output directory: {OutputDirectory}");
+            Console.WriteLine($"Input directory : {inputDirectory}");
+            Console.WriteLine($"Output directory: {outputDirectory}");
             Console.WriteLine();
 
             using IEmbeddingModel model = new OnnxEmbeddingModel();
@@ -45,22 +46,22 @@ public static class Program
             // Load vectors for each sense.
             List<float[]> riverVectors = LoadCorpusVectors(
                 model,
-                Path.Combine(InputDirectory, RiverCorpusFileName),
+                Path.Combine(inputDirectory, RiverCorpusFileName),
                 "river_bank");
 
             List<float[]> financialVectors = LoadCorpusVectors(
                 model,
-                Path.Combine(InputDirectory, FinancialCorpusFileName),
+                Path.Combine(inputDirectory, FinancialCorpusFileName),
                 "financial_bank");
 
             List<float[]> otherVectors = LoadCorpusVectors(
                 model,
-                Path.Combine(InputDirectory, OtherCorpusFileName),
+                Path.Combine(inputDirectory, OtherCorpusFileName),
                 "other");
 
             List<float[]> verbVectors = LoadCorpusVectors(
                 model,
-                Path.Combine(InputDirectory, VerbCorpusFileName),
+                Path.Combine(inputDirectory, VerbCorpusFileName),
                 "verb_bank");
 
             if (riverVectors.Count == 0)
@@ -102,8 +103,8 @@ public static class Program
                 SimilarityThreshold = similarityThreshold
             };
 
-            Directory.CreateDirectory(OutputDirectory);
-            string outputPath = Path.Combine(OutputDirectory, BankMeaningIdentifier.BankCentroidsFileName);
+            Directory.CreateDirectory(outputDirectory);
+            string outputPath = Path.Combine(outputDirectory, BankMeaningIdentifier.BankCentroidsFileName);
 
             JsonSerializerOptions options = new ()
             {
@@ -125,6 +126,25 @@ public static class Program
             Console.Error.WriteLine(ex);
             return 1;
         }
+    }
+
+    private static string FindSolutionFolder()
+    {
+        const string solutionFileName = "Genova.BankIdentifier.sln";
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+
+        while (directory != null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, solutionFileName)))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException(
+            $"Solution folder containing '{solutionFileName}' could not be found.");
     }
 
     private static List<float[]> LoadCorpusVectors(
